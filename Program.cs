@@ -43,11 +43,11 @@ while (true)
     DerivationType type = detectorService.Detect(input);
     Console.WriteLine("Paso 2 - Tipo detectado: " + type);
 
-    // PASO 3 - parserService recibe el input y el tipo, le pide al ParserRepository que convierta el string a Polynomial
+    // PASO 3 - parserService recibe el input y el tipo, le pide al ParserRepository que convierta el string a Polynomial (vía AngouriMath)
     ParsedDerivation parsed = parserService.Parse(input, type);
     Console.WriteLine("Paso 3 - Parseado: " + parsed.Polynomial);
 
-    // PASO 4 - derivationService recibe el parsed, llama al DerivationRepository que resuelve la operacion y regresa el resultado
+    // PASO 4 - derivationService recibe el parsed, llama al DerivationRepository que resuelve la operacion con AngouriMath y regresa el resultado
     DerivationOutput output = derivationService.Solve(parsed);
     Console.WriteLine("Paso 4 - Resultado: " + output.Result);
 

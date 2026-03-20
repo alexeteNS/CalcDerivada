@@ -1,8 +1,14 @@
 {
   "version": 2,
-  "dgSpecHash": "DNWS50OA4Vs=",
+  "dgSpecHash": "CdkFUn73RuA=",
   "success": true,
   "projectFilePath": "/home/zambrandon/Descargas/CalcDerivadas3/CalcDerivadas.csproj",
-  "expectedPackageFiles": [],
+  "expectedPackageFiles": [
+    "/home/zambrandon/.nuget/packages/angourimath/1.4.0-preview.2/angourimath.1.4.0-preview.2.nupkg.sha512",
+    "/home/zambrandon/.nuget/packages/antlr4.runtime.standard/4.9.2/antlr4.runtime.standard.4.9.2.nupkg.sha512",
+    "/home/zambrandon/.nuget/packages/generictensor/1.0.4/generictensor.1.0.4.nupkg.sha512",
+    "/home/zambrandon/.nuget/packages/honksharp/1.0.3/honksharp.1.0.3.nupkg.sha512",
+    "/home/zambrandon/.nuget/packages/petero.numbers/1.8.0/petero.numbers.1.8.0.nupkg.sha512"
+  ],
   "logs": []
 }

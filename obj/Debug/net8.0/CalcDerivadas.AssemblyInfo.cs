@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("CalcDerivadas")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+ef1110170203f8a41c1c104a6c2881813e43b73e")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
 [assembly: System.Reflection.AssemblyProductAttribute("CalcDerivadas")]
 [assembly: System.Reflection.AssemblyTitleAttribute("CalcDerivadas")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

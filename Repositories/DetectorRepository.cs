@@ -3,6 +3,8 @@ using Models;
 
 namespace Repositories
 {
+    // Sin cambios de lógica: el detector sigue leyendo el DerivationInput
+    // con las mismas reglas que antes (prefijos, campos A/B, NthOrder, RawSecond).
     public class DetectorRepository : IDetectorRepository
     {
         public DerivationType DetectType(DerivationInput input)
