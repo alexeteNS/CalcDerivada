@@ -17,11 +17,11 @@ namespace Models
 
     public class DerivationInput
     {
-        public string  Raw        { get; set; } = "";
-        public string? RawSecond  { get; set; }
-        public double? A          { get; set; }
-        public double? B          { get; set; }
-        public int     NthOrder   { get; set; } = 1;
+        public string  Raw       { get; set; } = "";
+        public string? RawSecond { get; set; }
+        public double? A         { get; set; }
+        public double? B         { get; set; }
+        public int     NthOrder  { get; set; } = 1;
     }
 
     public class ParsedDerivation
@@ -36,9 +36,9 @@ namespace Models
 
     public class DerivationOutput
     {
-        public bool          Success     { get; set; }
-        public string        Description { get; set; } = "";
-        public string        Result      { get; set; } = "";
-        public List<string>  Steps       { get; set; } = new();
+        public bool         Success     { get; set; }
+        public string       Description { get; set; } = "";
+        public string       Result      { get; set; } = "";
+        public List<string> Steps       { get; set; } = new();
     }
 }

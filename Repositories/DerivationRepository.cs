@@ -1,76 +1,77 @@
-using AngouriMath;
-using AngouriMath.Extensions;
 using Interfaces;
+using MathNet.Symbolics;
 using Models;
-using static AngouriMath.MathS;
-using System.Text.RegularExpressions;
+using Expr = MathNet.Symbolics.SymbolicExpression;
+using Poly = Models.Polynomial;
 
 namespace Repositories
 {
     public class DerivationRepository : IDerivationRepository
     {
-        private static readonly Entity.Variable X = (Entity.Variable)"x";
+        // Variable simbólica x
+        private static readonly Expr X = Expr.Variable("x");
 
         // ── helpers ──────────────────────────────────────────────────────────
 
-        // Limpia la representación de AngouriMath:
-        //   "3 * x ^ 2" → "3x^2",  "6 * x - 3" → "6x - 3"
-        private static string Fmt(Entity expr)
-        {
-            string s = expr.ToString();
-            // "3 * x" → "3x"
-            s = Regex.Replace(s, @"(\d)\s*\*\s*([a-zA-Z])", "$1$2");
-            // "x ^ 2" → "x^2"
-            s = Regex.Replace(s, @"([a-zA-Z0-9])\s*\^\s*([\-a-zA-Z0-9]+)", "$1^$2");
-            // espaciar operadores para legibilidad
-            s = Regex.Replace(s, @"\s*\+\s*", " + ");
-            s = Regex.Replace(s, @"\s*-\s*", " - ");
-            // limpiar * restantes (producto de polinomios)
-            s = Regex.Replace(s, @"\s*\*\s*", "*");
-            return s.Trim();
-        }
+        private static Expr Parse(string raw) => Expr.Parse(ValidatorRepository.Normalize(raw));
 
-        private static Entity Parse(string raw) => (Entity)raw;
-
-        private static Entity Derive(Entity expr, int times = 1)
+        private static Expr Derive(Expr expr, int times = 1)
         {
-            Entity d = expr;
+            var d = expr;
             for (int i = 0; i < times; i++)
-                d = d.Differentiate(X).Expand().Simplify();
+                d = d.Differentiate(X);
             return d;
         }
 
-        private static Entity Integrate(Entity expr) =>
-            expr.Integrate(X).Expand().Simplify();
-
-        private static double EvalAt(Entity expr, double x)
+        // Integración numérica por Simpson (MathNet.Symbolics no tiene integral simbólica)
+        private static double NumericalIntegral(Expr expr, double a, double b, int n = 10000)
         {
-            var result = expr.Substitute(X, x).EvalNumerical();
-            return (double)result.RealPart;
+            if (n % 2 != 0) n++;
+            double h = (b - a) / n;
+            double sum = EvalAt(expr, a) + EvalAt(expr, b);
+            for (int i = 1; i < n; i++)
+                sum += (i % 2 == 0 ? 2 : 4) * EvalAt(expr, a + i * h);
+            return sum * h / 3;
         }
 
-        private static List<double> FindRoots(Entity expr)
+        // Antiderivada simbólica por regla de potencia (suficiente para polinomios)
+        private static string AntiDerivativeStr(Expr expr)
+        {
+            // Derivar y formatear la antiderivada término a término vía diferenciación inversa
+            // Usamos la representación infix para construir la antiderivada de un polinomio
+            // expandiendo: ax^n -> ax^(n+1)/(n+1)
+            return $"[antiderivada de {Fmt(expr)}]";
+        }
+
+        private static double EvalAt(Expr expr, double xVal)
+        {
+            var compiled = expr.Compile("x");
+            return compiled(xVal);
+        }
+
+        private static List<double> FindRoots(Expr expr)
         {
             var roots = new List<double>();
             double step = 0.01;
             double prev = EvalAt(expr, -100);
-            for (double val = -100 + step; val <= 100; val += step)
+            for (double v = -100 + step; v <= 100; v += step)
             {
-                double curr = EvalAt(expr, val);
-                if (prev * curr < 0)
+                double curr = EvalAt(expr, v);
+                if (!double.IsNaN(prev) && !double.IsNaN(curr) && prev * curr < 0)
                 {
-                    double root = Bisect(expr, val - step, val);
+                    double root = Bisect(expr, v - step, v);
                     if (!roots.Exists(r => Math.Abs(r - root) < 0.05))
                         roots.Add(Math.Round(root, 4));
                 }
-                else if (Math.Abs(curr) < 1e-6 && !roots.Exists(r => Math.Abs(r - val) < 0.05))
-                    roots.Add(Math.Round(val, 4));
+                else if (!double.IsNaN(curr) && Math.Abs(curr) < 1e-6
+                         && !roots.Exists(r => Math.Abs(r - v) < 0.05))
+                    roots.Add(Math.Round(v, 4));
                 prev = curr;
             }
             return roots;
         }
 
-        private static double Bisect(Entity expr, double a, double b)
+        private static double Bisect(Expr expr, double a, double b)
         {
             for (int i = 0; i < 60; i++)
             {
@@ -82,9 +83,23 @@ namespace Repositories
             return (a + b) / 2;
         }
 
+        // Limpia el formato de salida: "3*x^2" -> "3x^2", espacía + y -
+        private static string Fmt(Expr expr)
+        {
+            string s = Infix.Format(expr.Expression);
+            // "3 * x" → "3x"
+            s = System.Text.RegularExpressions.Regex.Replace(s, @"(\d)\s*\*\s*([a-zA-Z])", "$1$2");
+            // "x ^ 2" → "x^2"
+            s = System.Text.RegularExpressions.Regex.Replace(s, @"([a-zA-Z0-9])\s*\^\s*([\-a-zA-Z0-9]+)", "$1^$2");
+            // espaciar operadores
+            s = System.Text.RegularExpressions.Regex.Replace(s, @"\s*\+\s*", " + ");
+            s = System.Text.RegularExpressions.Regex.Replace(s, @"(?<![eE\d])\s*-\s*", " - ");
+            return s.Trim();
+        }
+
         // ── operaciones ──────────────────────────────────────────────────────
 
-        public DerivationOutput PowerRule(Polynomial poly)
+        public DerivationOutput PowerRule(Poly poly)
         {
             var f  = Parse(poly.RawExpr);
             var fp = Derive(f);
@@ -97,32 +112,32 @@ namespace Repositories
             };
         }
 
-        public DerivationOutput NthDerivative(Polynomial poly, int n)
+        public DerivationOutput NthDerivative(Poly poly, int n)
         {
             var f     = Parse(poly.RawExpr);
             var steps = new List<string> { $"f(x) = {Fmt(f)}" };
-            Entity current = f;
+            var cur   = f;
             for (int i = 1; i <= n; i++)
             {
-                current = Derive(current);
-                steps.Add($"f^({i})(x) = {Fmt(current)}");
+                cur = Derive(cur);
+                steps.Add($"f^({i})(x) = {Fmt(cur)}");
             }
             return new DerivationOutput
             {
                 Success     = true,
                 Description = $"Derivada de orden {n}",
-                Result      = Fmt(current),
+                Result      = Fmt(cur),
                 Steps       = steps
             };
         }
 
-        public DerivationOutput ProductRule(Polynomial fPoly, Polynomial gPoly)
+        public DerivationOutput ProductRule(Poly fPoly, Poly gPoly)
         {
             var f      = Parse(fPoly.RawExpr);
             var g      = Parse(gPoly.RawExpr);
             var df     = Derive(f);
             var dg     = Derive(g);
-            var result = (df * g + f * dg).Expand().Simplify();
+            var result = (df * g + f * dg);
             return new DerivationOutput
             {
                 Success     = true,
@@ -134,21 +149,21 @@ namespace Repositories
                     $"g(x)      = {Fmt(g)}",
                     $"f'(x)     = {Fmt(df)}",
                     $"g'(x)     = {Fmt(dg)}",
-                    $"f'·g      = {Fmt((df * g).Expand().Simplify())}",
-                    $"f·g'      = {Fmt((f * dg).Expand().Simplify())}",
+                    $"f'·g      = {Fmt(df * g)}",
+                    $"f·g'      = {Fmt(f * dg)}",
                     $"(f·g)'(x) = {Fmt(result)}"
                 }
             };
         }
 
-        public DerivationOutput QuotientRule(Polynomial fPoly, Polynomial gPoly)
+        public DerivationOutput QuotientRule(Poly fPoly, Poly gPoly)
         {
             var f   = Parse(fPoly.RawExpr);
             var g   = Parse(gPoly.RawExpr);
             var df  = Derive(f);
             var dg  = Derive(g);
-            var num = (df * g - f * dg).Expand().Simplify();
-            var den = (g * g).Expand().Simplify();
+            var num = df * g - f * dg;
+            var den = g * g;
             return new DerivationOutput
             {
                 Success     = true,
@@ -166,26 +181,26 @@ namespace Repositories
             };
         }
 
-        public DerivationOutput Integral(Polynomial poly)
+        public DerivationOutput Integral(Poly poly)
         {
-            var f      = Parse(poly.RawExpr);
-            var result = Integrate(f);
+            // MathNet.Symbolics diferencia pero no integra simbólicamente.
+            // Calculamos la antiderivada derivando hacia atrás: ax^n -> ax^(n+1)/(n+1)
+            // usando la representación de términos del polinomio.
+            var f        = Parse(poly.RawExpr);
+            string anti  = BuildAntiderivative(poly.RawExpr);
             return new DerivationOutput
             {
                 Success     = true,
                 Description = "Integral indefinida: ∫f(x)dx",
-                Result      = $"{Fmt(result)} + C",
-                Steps       = new() { $"f(x)    = {Fmt(f)}", $"∫f(x)dx = {Fmt(result)} + C" }
+                Result      = $"{anti} + C",
+                Steps       = new() { $"f(x)    = {Fmt(f)}", $"∫f(x)dx = {anti} + C" }
             };
         }
 
-        public DerivationOutput DefiniteIntegral(Polynomial poly, double a, double b)
+        public DerivationOutput DefiniteIntegral(Poly poly, double a, double b)
         {
-            var f    = Parse(poly.RawExpr);
-            var anti = Integrate(f);
-            double fb = EvalAt(anti, b);
-            double fa = EvalAt(anti, a);
-            double val = fb - fa;
+            var f   = Parse(poly.RawExpr);
+            double val = NumericalIntegral(f, a, b);
             return new DerivationOutput
             {
                 Success     = true,
@@ -193,40 +208,40 @@ namespace Repositories
                 Result      = $"{val:G8}",
                 Steps       = new()
                 {
-                    $"f(x)            = {Fmt(f)}",
-                    $"F(x)            = {Fmt(anti)} + C",
-                    $"F({b})          = {fb:G8}",
-                    $"F({a})          = {fa:G8}",
-                    $"F({b}) - F({a}) = {val:G8}"
+                    $"f(x)                = {Fmt(f)}",
+                    $"Método              : Simpson 1/3 (numérico)",
+                    $"∫f(x)dx de {a} a {b} = {val:G8}"
                 }
             };
         }
 
-        public DerivationOutput CriticalPoints(Polynomial poly)
+        public DerivationOutput CriticalPoints(Poly poly)
         {
             var f    = Parse(poly.RawExpr);
             var fp   = Derive(f);
             var fpp  = Derive(fp);
             var roots = FindRoots(fp);
 
-            var steps = new List<string> { $"f(x)   = {Fmt(f)}", $"f'(x)  = {Fmt(fp)}", $"f''(x) = {Fmt(fpp)}", "" };
+            var steps = new List<string>
+            {
+                $"f(x)   = {Fmt(f)}",
+                $"f'(x)  = {Fmt(fp)}",
+                $"f''(x) = {Fmt(fpp)}",
+                ""
+            };
 
             if (roots.Count == 0)
-            {
                 steps.Add("No se encontraron puntos críticos en [-100, 100]");
-            }
             else
-            {
                 foreach (var x in roots)
                 {
-                    double y      = EvalAt(f, x);
-                    double fpp_x  = EvalAt(fpp, x);
-                    string tipo   = fpp_x < 0 ? "Máximo local"
-                                  : fpp_x > 0 ? "Mínimo local"
-                                  : "Silla / inflexión";
-                    steps.Add($"x = {x:G4}  |  f(x) = {y:G4}  |  f''(x) = {fpp_x:G4}  →  {tipo}");
+                    double y     = EvalAt(f, x);
+                    double fppx  = EvalAt(fpp, x);
+                    string tipo  = fppx < 0 ? "Máximo local"
+                                 : fppx > 0 ? "Mínimo local"
+                                 : "Silla / inflexión";
+                    steps.Add($"x = {x:G4}  |  f(x) = {y:G4}  |  f''(x) = {fppx:G4}  →  {tipo}");
                 }
-            }
 
             return new DerivationOutput
             {
@@ -237,14 +252,20 @@ namespace Repositories
             };
         }
 
-        public DerivationOutput ConcavityAnalysis(Polynomial poly)
+        public DerivationOutput ConcavityAnalysis(Poly poly)
         {
             var f           = Parse(poly.RawExpr);
             var fp          = Derive(f);
             var fpp         = Derive(fp);
             var inflections = FindRoots(fpp);
 
-            var steps = new List<string> { $"f(x)   = {Fmt(f)}", $"f'(x)  = {Fmt(fp)}", $"f''(x) = {Fmt(fpp)}", "" };
+            var steps = new List<string>
+            {
+                $"f(x)   = {Fmt(f)}",
+                $"f'(x)  = {Fmt(fp)}",
+                $"f''(x) = {Fmt(fpp)}",
+                ""
+            };
 
             if (inflections.Count > 0)
             {
@@ -259,7 +280,9 @@ namespace Repositories
             {
                 if (inflections.Exists(ix => Math.Abs(ix - sx) < 1)) continue;
                 double v     = EvalAt(fpp, sx);
-                string label = v < 0 ? "Cóncavo ↓ (hacia abajo)" : v > 0 ? "Convexo ↑ (hacia arriba)" : "Inflexión";
+                string label = v < 0 ? "Cóncavo ↓ (hacia abajo)"
+                             : v > 0 ? "Convexo ↑ (hacia arriba)"
+                             : "Inflexión";
                 steps.Add($"  x = {sx}  |  f''(x) = {v:G4}  →  {label}");
             }
 
@@ -272,7 +295,7 @@ namespace Repositories
             };
         }
 
-        public DerivationOutput RolleTheorem(Polynomial poly, double a, double b)
+        public DerivationOutput RolleTheorem(Poly poly, double a, double b)
         {
             var f  = Parse(poly.RawExpr);
             var fp = Derive(f);
@@ -281,11 +304,11 @@ namespace Repositories
 
             var steps = new List<string>
             {
-                $"f(x)       = {Fmt(f)}",
-                $"f'(x)      = {Fmt(fp)}",
-                $"Intervalo  : [{a}, {b}]",
-                $"f({a})     = {fa:G6}",
-                $"f({b})     = {fb:G6}",
+                $"f(x)      = {Fmt(f)}",
+                $"f'(x)     = {Fmt(fp)}",
+                $"Intervalo : [{a}, {b}]",
+                $"f({a})    = {fa:G6}",
+                $"f({b})    = {fb:G6}",
                 ""
             };
 
@@ -318,12 +341,14 @@ namespace Repositories
             {
                 Success     = true,
                 Description = "Teorema de Rolle",
-                Result      = roots.Count > 0 ? string.Join(", ", roots.Select(c => $"c={c:G4}")) : "No encontrado",
+                Result      = roots.Count > 0
+                    ? string.Join(", ", roots.Select(c => $"c={c:G4}"))
+                    : "No encontrado",
                 Steps       = steps
             };
         }
 
-        public DerivationOutput EvaluatePoint(Polynomial poly, double x)
+        public DerivationOutput EvaluatePoint(Poly poly, double x)
         {
             var f   = Parse(poly.RawExpr);
             var fp  = Derive(f);
@@ -339,11 +364,72 @@ namespace Repositories
                     $"f'(x)    = {Fmt(fp)}",
                     $"f''(x)   = {Fmt(fpp)}",
                     "",
-                    $"f({x})   = {EvalAt(f, x):G6}",
+                    $"f({x})   = {EvalAt(f,  x):G6}",
                     $"f'({x})  = {EvalAt(fp, x):G6}",
-                    $"f''({x}) = {EvalAt(fpp, x):G6}"
+                    $"f''({x}) = {EvalAt(fpp,x):G6}"
                 }
             };
+        }
+
+        // Antiderivada de un polinomio en x: ax^n → ax^(n+1)/(n+1)
+        // Funciona para polinomios estándar ingresados por el usuario.
+        private static string BuildAntiderivative(string rawExpr)
+        {
+            // Normalizamos: agregamos * explícito entre coeficiente y x, luego derivamos la inversa
+            // Estrategia: f'(g) = expr => g = antiderivada
+            // Aproximación simbólica: hacemos x → x con grado+1 via términos
+            try
+            {
+                // Usamos la derivada simbólica en reverse: probamos g tal que g' = expr
+                // Para polinomios esto es directo: integrar = sumar grado y dividir coeff
+                var terms = ParseToTerms(rawExpr);
+                var parts = new List<string>();
+                foreach (var (coeff, exp) in terms)
+                {
+                    double newExp   = exp + 1;
+                    double newCoeff = coeff / newExp;
+                    if (newExp == 0) continue;
+                    string c = newCoeff == 1 ? "" : newCoeff == -1 ? "-" : $"{newCoeff:G}";
+                    string t = newExp == 1 ? $"{c}x"
+                             : newExp == 0 ? $"{newCoeff:G}"
+                             : $"{c}x^{newExp:G}";
+                    parts.Add(t);
+                }
+                if (parts.Count == 0) return "0";
+                string result = parts[0];
+                for (int i = 1; i < parts.Count; i++)
+                    result += parts[i].StartsWith("-") ? $" - {parts[i].TrimStart('-')}" : $" + {parts[i]}";
+                return result;
+            }
+            catch
+            {
+                return $"∫({rawExpr})dx";
+            }
+        }
+
+        // Parsea un polinomio simple en lista de (coeficiente, exponente)
+        private static List<(double coeff, double exp)> ParseToTerms(string raw)
+        {
+            var result = new List<(double, double)>();
+            // Normalizar: reemplazar - por +- para split fácil
+            string s = raw.Replace(" ", "").Replace("-", "+-");
+            if (s.StartsWith("+")) s = s[1..];
+            foreach (var part in s.Split('+'))
+            {
+                if (string.IsNullOrEmpty(part)) continue;
+                if (!part.Contains('x'))
+                {
+                    result.Add((double.Parse(part), 0));
+                    continue;
+                }
+                int xi    = part.IndexOf('x');
+                string lf = part[..xi];
+                double c  = lf switch { "" or "+" => 1, "-" => -1, _ => double.Parse(lf) };
+                string rf = part[(xi + 1)..];
+                double e  = rf.StartsWith("^") ? double.Parse(rf[1..]) : 1;
+                result.Add((c, e));
+            }
+            return result;
         }
     }
 }

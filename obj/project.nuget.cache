@@ -1,14 +1,16 @@
 {
   "version": 2,
-  "dgSpecHash": "CdkFUn73RuA=",
+  "dgSpecHash": "8sN5iXn7Q5I=",
   "success": true,
   "projectFilePath": "/home/zambrandon/Descargas/CalcDerivadas3/CalcDerivadas.csproj",
   "expectedPackageFiles": [
-    "/home/zambrandon/.nuget/packages/angourimath/1.4.0-preview.2/angourimath.1.4.0-preview.2.nupkg.sha512",
-    "/home/zambrandon/.nuget/packages/antlr4.runtime.standard/4.9.2/antlr4.runtime.standard.4.9.2.nupkg.sha512",
-    "/home/zambrandon/.nuget/packages/generictensor/1.0.4/generictensor.1.0.4.nupkg.sha512",
-    "/home/zambrandon/.nuget/packages/honksharp/1.0.3/honksharp.1.0.3.nupkg.sha512",
-    "/home/zambrandon/.nuget/packages/petero.numbers/1.8.0/petero.numbers.1.8.0.nupkg.sha512"
+    "/home/zambrandon/.nuget/packages/fparsec/1.0.3/fparsec.1.0.3.nupkg.sha512",
+    "/home/zambrandon/.nuget/packages/fsharp.core/4.6.0/fsharp.core.4.6.0.nupkg.sha512",
+    "/home/zambrandon/.nuget/packages/mathnet.numerics/4.15.0/mathnet.numerics.4.15.0.nupkg.sha512",
+    "/home/zambrandon/.nuget/packages/mathnet.numerics.fsharp/4.15.0/mathnet.numerics.fsharp.4.15.0.nupkg.sha512",
+    "/home/zambrandon/.nuget/packages/mathnet.symbolics/0.24.0/mathnet.symbolics.0.24.0.nupkg.sha512",
+    "/home/zambrandon/.nuget/packages/microsoft.netcore.platforms/1.1.0/microsoft.netcore.platforms.1.1.0.nupkg.sha512",
+    "/home/zambrandon/.nuget/packages/netstandard.library/1.6.1/netstandard.library.1.6.1.nupkg.sha512"
   ],
   "logs": []
 }

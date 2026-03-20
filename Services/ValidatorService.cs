@@ -8,16 +8,13 @@ namespace Services
         private readonly IValidatorRepository _repo;
         public string ValidationError { get; private set; } = "";
 
-        public ValidatorService(IValidatorRepository repo)
-        {
-            _repo = repo;
-        }
+        public ValidatorService(IValidatorRepository repo) => _repo = repo;
 
         public bool Validate(DerivationInput input)
         {
             if (!_repo.IsValidFormat(input.Raw))
             {
-                ValidationError = "Formato inválido. Usa solo: números, x, ^, +, -";
+                ValidationError = "Formato inválido. Usa: números, x, ^, +, -, *, /, ()";
                 return false;
             }
             if (!_repo.IsDerivable(input.Raw))

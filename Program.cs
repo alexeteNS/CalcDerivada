@@ -4,8 +4,6 @@ using Repositories;
 using Services;
 
 IValidatorService  validatorService  = new ValidatorService(new ValidatorRepository());
-IDetectorService   detectorService   = new DetectorService(new DetectorRepository());
-IParserService     parserService     = new ParserService(new ParserRepository());
 IDerivationService derivationService = new DerivationService(new DerivationRepository());
 
 while (true)
@@ -34,20 +32,29 @@ while (true)
 
     Console.WriteLine();
 
-    // PASO 1 - validatorService recibe el input y le pregunta al ValidatorRepository si el formato es valido y si es derivable
+    // PASO 1 — ValidatorService valida formato y derivabilidad
     bool isValid = validatorService.Validate(input);
     Console.WriteLine("Paso 1 - Validacion: " + (isValid ? "valido" : "invalido - " + validatorService.ValidationError));
     if (!isValid) { Console.WriteLine(); continue; }
 
-    // PASO 2 - detectorService recibe el input y le pregunta al DetectorRepository que tipo de derivacion es
-    DerivationType type = detectorService.Detect(input);
+    // PASO 2 — Detectar tipo y construir ParsedDerivation directamente
+    DerivationType type = DetectType(input);
     Console.WriteLine("Paso 2 - Tipo detectado: " + type);
 
-    // PASO 3 - parserService recibe el input y el tipo, le pide al ParserRepository que convierta el string a Polynomial (vía AngouriMath)
-    ParsedDerivation parsed = parserService.Parse(input, type);
+    var parsed = new ParsedDerivation
+    {
+        Type       = type,
+        Polynomial = new Polynomial { RawExpr = StripPrefix(input.Raw) },
+        A          = input.A,
+        B          = input.B,
+        NthOrder   = input.NthOrder
+    };
+    if (!string.IsNullOrWhiteSpace(input.RawSecond))
+        parsed.Second = new Polynomial { RawExpr = input.RawSecond!.TrimStart('/').Trim() };
+
     Console.WriteLine("Paso 3 - Parseado: " + parsed.Polynomial);
 
-    // PASO 4 - derivationService recibe el parsed, llama al DerivationRepository que resuelve la operacion con AngouriMath y regresa el resultado
+    // PASO 3 — DerivationService resuelve con MathNet.Symbolics
     DerivationOutput output = derivationService.Solve(parsed);
     Console.WriteLine("Paso 4 - Resultado: " + output.Result);
 
@@ -56,4 +63,31 @@ while (true)
         Console.WriteLine(step);
 
     Console.WriteLine();
+}
+
+// ── helpers locales ───────────────────────────────────────────────────────────
+
+static DerivationType DetectType(DerivationInput input)
+{
+    string raw = input.Raw.Trim();
+
+    if (input.NthOrder > 1)                                               return DerivationType.NthDerivative;
+    if (!string.IsNullOrWhiteSpace(input.RawSecond))
+        return input.RawSecond!.TrimStart().StartsWith("/")
+            ? DerivationType.QuotientRule : DerivationType.ProductRule;
+    if (raw.StartsWith("R") && input.A.HasValue && input.B.HasValue)      return DerivationType.RolleTheorem;
+    if (raw.StartsWith("I") && input.A.HasValue && input.B.HasValue)      return DerivationType.DefiniteIntegral;
+    if (raw.StartsWith("I"))                                               return DerivationType.Integral;
+    if (raw.StartsWith("C"))                                               return DerivationType.CriticalPoints;
+    if (raw.StartsWith("K"))                                               return DerivationType.ConcavityAnalysis;
+    if (input.A.HasValue && !input.B.HasValue)                             return DerivationType.EvaluatePoint;
+    return DerivationType.PowerRule;
+}
+
+static string StripPrefix(string raw)
+{
+    foreach (var p in new[] { "I", "C", "K", "R" })
+        if (raw.StartsWith(p) && raw.Length > 1 && !char.IsLetter(raw[1]))
+            return raw[1..].Trim();
+    return raw;
 }

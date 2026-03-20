@@ -44,9 +44,9 @@
         "net10.0": {
           "targetAlias": "net10.0",
           "dependencies": {
-            "AngouriMath": {
+            "MathNet.Symbolics": {
               "target": "Package",
-              "version": "[1.4.0-preview.2, )"
+              "version": "[0.24.0, )"
             }
           },
           "imports": [

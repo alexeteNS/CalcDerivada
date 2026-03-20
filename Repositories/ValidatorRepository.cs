@@ -1,34 +1,31 @@
-using AngouriMath;
 using Interfaces;
+using MathNet.Symbolics;
 using System.Text.RegularExpressions;
 
 namespace Repositories
 {
     public class ValidatorRepository : IValidatorRepository
     {
+        // Caracteres permitidos: dígitos, x, operadores, paréntesis, punto, espacios
+        private static readonly Regex AllowedChars  = new(@"^[\d\sx\+\-\*\^\/\.\(\)]+$");
+        // Patrón inválido: dígito pegado DESPUÉS de x  (x3, x12)
+        private static readonly Regex InvalidXDigit = new(@"x\d");
+
         public bool IsValidFormat(string input)
         {
             if (string.IsNullOrWhiteSpace(input)) return false;
-
             string clean = StripCommandPrefix(input.Trim());
 
-            // Rechazar patrones inválidos: dígito pegado después de 'x' sin operador (x3, x23, etc.)
-            if (Regex.IsMatch(clean, @"x\d"))
-                return false;
-
-            // Rechazar letras distintas a 'x'
-            if (Regex.IsMatch(clean, @"[a-wyzA-WYZ]"))
-                return false;
+            if (!AllowedChars.IsMatch(clean))  return false;
+            if (InvalidXDigit.IsMatch(clean))  return false;
 
             try
             {
-                Entity expr = clean;
+                // Normalizar multiplicación implícita antes de pasar a MathNet
+                Infix.ParseOrThrow(Normalize(clean));
                 return true;
             }
-            catch
-            {
-                return false;
-            }
+            catch { return false; }
         }
 
         public bool IsDerivable(string input)
@@ -36,20 +33,33 @@ namespace Repositories
             if (string.IsNullOrWhiteSpace(input)) return false;
             try
             {
-                string clean = StripCommandPrefix(input.Trim());
-                Entity expr = clean;
-                return expr.Vars.Contains(MathS.Var("x")) || expr.EvaluableNumerical;
+                Infix.ParseOrThrow(Normalize(StripCommandPrefix(input.Trim())));
+                return true;  // si parsea, es derivable
             }
-            catch
-            {
-                return false;
-            }
+            catch { return false; }
+        }
+
+        // Inserta * donde hay multiplicación implícita:
+        //   "2x"   → "2*x"
+        //   "2x^2" → "2*x^2"
+        //   "3(x)" → "3*(x)"
+        //   "(x+1)(x-1)" → "(x+1)*(x-1)"
+        public static string Normalize(string expr)
+        {
+            string s = expr.Replace(" ", "");
+            // número seguido de x:       2x → 2*x
+            s = Regex.Replace(s, @"(\d)(x)", "$1*$2");
+            // número seguido de (:       3( → 3*(
+            s = Regex.Replace(s, @"(\d)(\()", "$1*$2");
+            // ) seguido de x o (:        )(  → )*(   )(x → )*x
+            s = Regex.Replace(s, @"(\))([x\(])", "$1*$2");
+            return s;
         }
 
         private static string StripCommandPrefix(string raw)
         {
-            foreach (var prefix in new[] { "I", "C", "K", "R" })
-                if (raw.StartsWith(prefix) && raw.Length > 1 && !char.IsLetter(raw[1]))
+            foreach (var p in new[] { "I", "C", "K", "R" })
+                if (raw.StartsWith(p) && raw.Length > 1 && !char.IsLetter(raw[1]))
                     return raw[1..].Trim();
             return raw;
         }
