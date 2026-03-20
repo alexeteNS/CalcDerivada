@@ -36,12 +36,12 @@ namespace Repositories
         {
             Entity d = expr;
             for (int i = 0; i < times; i++)
-                d = d.Differentiate(X).Simplify();
+                d = d.Differentiate(X).Expand().Simplify();
             return d;
         }
 
         private static Entity Integrate(Entity expr) =>
-            expr.Integrate(X).Simplify();
+            expr.Integrate(X).Expand().Simplify();
 
         private static double EvalAt(Entity expr, double x)
         {
@@ -122,7 +122,7 @@ namespace Repositories
             var g      = Parse(gPoly.RawExpr);
             var df     = Derive(f);
             var dg     = Derive(g);
-            var result = (df * g + f * dg).Simplify();
+            var result = (df * g + f * dg).Expand().Simplify();
             return new DerivationOutput
             {
                 Success     = true,
@@ -134,8 +134,8 @@ namespace Repositories
                     $"g(x)      = {Fmt(g)}",
                     $"f'(x)     = {Fmt(df)}",
                     $"g'(x)     = {Fmt(dg)}",
-                    $"f'·g      = {Fmt((df * g).Simplify())}",
-                    $"f·g'      = {Fmt((f * dg).Simplify())}",
+                    $"f'·g      = {Fmt((df * g).Expand().Simplify())}",
+                    $"f·g'      = {Fmt((f * dg).Expand().Simplify())}",
                     $"(f·g)'(x) = {Fmt(result)}"
                 }
             };
@@ -147,8 +147,8 @@ namespace Repositories
             var g   = Parse(gPoly.RawExpr);
             var df  = Derive(f);
             var dg  = Derive(g);
-            var num = (df * g - f * dg).Simplify();
-            var den = (g * g).Simplify();
+            var num = (df * g - f * dg).Expand().Simplify();
+            var den = (g * g).Expand().Simplify();
             return new DerivationOutput
             {
                 Success     = true,

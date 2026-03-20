@@ -1,5 +1,6 @@
 using AngouriMath;
 using Interfaces;
+using System.Text.RegularExpressions;
 
 namespace Repositories
 {
@@ -8,9 +9,19 @@ namespace Repositories
         public bool IsValidFormat(string input)
         {
             if (string.IsNullOrWhiteSpace(input)) return false;
+
+            string clean = StripCommandPrefix(input.Trim());
+
+            // Rechazar patrones inválidos: dígito pegado después de 'x' sin operador (x3, x23, etc.)
+            if (Regex.IsMatch(clean, @"x\d"))
+                return false;
+
+            // Rechazar letras distintas a 'x'
+            if (Regex.IsMatch(clean, @"[a-wyzA-WYZ]"))
+                return false;
+
             try
             {
-                string clean = StripCommandPrefix(input.Trim());
                 Entity expr = clean;
                 return true;
             }
