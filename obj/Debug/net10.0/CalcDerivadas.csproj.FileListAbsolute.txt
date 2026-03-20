@@ -1,0 +1,14 @@
+/home/zambrandon/Descargas/CalcDerivadas3/bin/Debug/net10.0/CalcDerivadas
+/home/zambrandon/Descargas/CalcDerivadas3/bin/Debug/net10.0/CalcDerivadas.deps.json
+/home/zambrandon/Descargas/CalcDerivadas3/bin/Debug/net10.0/CalcDerivadas.runtimeconfig.json
+/home/zambrandon/Descargas/CalcDerivadas3/bin/Debug/net10.0/CalcDerivadas.dll
+/home/zambrandon/Descargas/CalcDerivadas3/bin/Debug/net10.0/CalcDerivadas.pdb
+/home/zambrandon/Descargas/CalcDerivadas3/obj/Debug/net10.0/CalcDerivadas.GeneratedMSBuildEditorConfig.editorconfig
+/home/zambrandon/Descargas/CalcDerivadas3/obj/Debug/net10.0/CalcDerivadas.AssemblyInfoInputs.cache
+/home/zambrandon/Descargas/CalcDerivadas3/obj/Debug/net10.0/CalcDerivadas.AssemblyInfo.cs
+/home/zambrandon/Descargas/CalcDerivadas3/obj/Debug/net10.0/CalcDerivadas.csproj.CoreCompileInputs.cache
+/home/zambrandon/Descargas/CalcDerivadas3/obj/Debug/net10.0/CalcDerivadas.dll
+/home/zambrandon/Descargas/CalcDerivadas3/obj/Debug/net10.0/refint/CalcDerivadas.dll
+/home/zambrandon/Descargas/CalcDerivadas3/obj/Debug/net10.0/CalcDerivadas.pdb
+/home/zambrandon/Descargas/CalcDerivadas3/obj/Debug/net10.0/CalcDerivadas.genruntimeconfig.cache
+/home/zambrandon/Descargas/CalcDerivadas3/obj/Debug/net10.0/ref/CalcDerivadas.dll
